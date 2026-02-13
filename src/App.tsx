@@ -10,6 +10,7 @@ import Memories from "./pages/Memories";
 import Ask from "./pages/Ask";
 import NotFound from "./pages/NotFound";
 import Letter from "./pages/Letter";
+import ScrollPage from "./pages/Scroll-Page"; // New Import
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const AnimatedRoutes = () => {
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/letter" element={<Letter />} />
         <Route path="/memories" element={<Memories />} />
+        <Route path="/scroll-page" element={<ScrollPage />} /> {/* New Route */}
         <Route path="/ask" element={<Ask />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
