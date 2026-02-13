@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,50 +6,48 @@
 
 @layer base {
   :root {
-    --background: 340 20% 6%;
-    --foreground: 340 20% 92%;
+    /* Soft, creamy blush background */
+    --background: 340 30% 98%;
+    /* Deep warm espresso/charcoal for that premium printed ink feel */
+    --foreground: 340 15% 25%;
 
-    --card: 340 15% 10%;
-    --card-foreground: 340 20% 92%;
+    /* Pure white cards to pop off the cream background */
+    --card: 0 0% 100%;
+    --card-foreground: 340 15% 25%;
 
-    --popover: 340 15% 10%;
-    --popover-foreground: 340 20% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 340 15% 25%;
 
-    --primary: 340 65% 55%;
-    --primary-foreground: 340 20% 97%;
+    /* Deep, velvety crimson/rose for primary buttons */
+    --primary: 340 70% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 340 15% 14%;
-    --secondary-foreground: 340 20% 85%;
+    /* Soft pink for secondary areas */
+    --secondary: 340 20% 94%;
+    --secondary-foreground: 340 70% 45%;
 
-    --muted: 340 10% 16%;
-    --muted-foreground: 340 12% 55%;
+    --muted: 340 20% 94%;
+    --muted-foreground: 340 10% 45%;
 
-    --accent: 20 60% 60%;
-    --accent-foreground: 20 20% 97%;
+    --accent: 340 40% 90%;
+    --accent-foreground: 340 70% 45%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 340 15% 18%;
-    --input: 340 15% 18%;
-    --ring: 340 65% 55%;
+    /* Delicate, barely-there borders */
+    --border: 340 20% 90%;
+    --input: 340 20% 90%;
+    --ring: 340 70% 45%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --love: 340 80% 60%;
-    --love-foreground: 340 20% 97%;
-    --love-glow: 340 80% 45%;
+    --love: 340 70% 45%;
+    --love-foreground: 0 0% 100%;
+    --love-glow: 340 60% 75%;
+    
     --gold: 42 70% 55%;
     --gold-foreground: 42 20% 10%;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -60,24 +58,27 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Lora', serif;
+    /* Clean sans-serif for the body text */
+    font-family: 'Inter', sans-serif; 
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    /* Keep the elegant serif for the big romantic headings */
+    font-family: 'Playfair Display', serif; 
   }
 }
 
+/* Adjust the glows so they look like soft drop-shadows on a light background */
 @layer utilities {
   .text-glow {
-    text-shadow: 0 0 20px hsl(var(--love) / 0.4), 0 0 40px hsl(var(--love) / 0.2);
+    text-shadow: 0 4px 12px hsl(var(--love) / 0.15);
   }
 
   .box-glow {
-    box-shadow: 0 0 30px hsl(var(--love) / 0.3), 0 0 60px hsl(var(--love) / 0.1);
+    box-shadow: 0 10px 30px -5px hsl(var(--love) / 0.15), 0 0 10px hsl(var(--love) / 0.05);
   }
 
   .box-glow-gold {
-    box-shadow: 0 0 30px hsl(var(--gold) / 0.3), 0 0 60px hsl(var(--gold) / 0.1);
+    box-shadow: 0 10px 30px -5px hsl(var(--gold) / 0.15);
   }
 }

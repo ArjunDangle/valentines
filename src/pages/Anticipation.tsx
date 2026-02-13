@@ -1,126 +1,161 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import Lottie from "lottie-react";
 
-const Anticipation = () => {
+export default function Anticipation() {
   const navigate = useNavigate();
-  const [opened, setOpened] = useState(false);
+  // Expanded state machine to handle the cinematic exit
+  const [phase, setPhase] = useState<"typing" | "envelope" | "exiting-envelope" | "exiting-cat">("typing");
+  
+  const [catData, setCatData] = useState<any>(null);
+  const [envelopeData, setEnvelopeData] = useState<any>(null);
+  const catRef = useRef<any>(null);
 
-  const handleOpen = () => {
-    if (opened) return;
-    setOpened(true);
-    setTimeout(() => navigate("/quiz"), 2200);
+  useEffect(() => {
+    fetch("/assets/lotties/cat.json")
+      .then((res) => res.json())
+      .then((data) => setCatData(data));
+      
+    fetch("/assets/lotties/envelope.json")
+      .then((res) => res.json())
+      .then((data) => setEnvelopeData(data));
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPhase((prev) => (prev === "typing" ? "envelope" : prev));
+    }, 8500); 
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const message = "Oh, looks like this letter was meant for a very specific girl... one with beautiful brown hair, and the prettiest brown eyes. Yep, it definitely flew to the correct inbox.";
+  const words = message.split(" ");
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15, delayChildren: 1.5 }, 
+    },
+    exit: { 
+      opacity: 0, 
+      y: -20, 
+      filter: "blur(10px)",
+      transition: { duration: 1, ease: "easeInOut" } 
+    }
+  };
+
+  const wordVariants = {
+    hidden: { opacity: 0, y: 10, filter: "blur(4px)" },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      filter: "blur(0px)",
+      transition: { type: "spring", damping: 12, stiffness: 100 }
+    },
+  };
+
+  // The perfectly timed exit sequence
+  const handleTransition = () => {
+    // 1. Envelope immediately begins to blur/fade out
+    setPhase("exiting-envelope");
+
+    // 2. Wait 0.8s (for envelope to fade) + 0.5s pause = 1.3s total
+    setTimeout(() => {
+      setPhase("exiting-cat");
+
+      // 3. Cat drops down (takes about 0.8s), then we navigate
+      setTimeout(() => {
+        navigate("/letter");
+      }, 1000); 
+
+    }, 1300);
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      {/* Ambient particles */}
-      {Array.from({ length: 20 }).map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute h-1 w-1 rounded-full bg-primary/30"
-          initial={{
-            x: Math.random() * (typeof window !== "undefined" ? window.innerWidth : 800),
-            y: Math.random() * (typeof window !== "undefined" ? window.innerHeight : 600),
-          }}
-          animate={{
-            y: [null, Math.random() * -200 - 50],
-            opacity: [0, 0.6, 0],
-          }}
-          transition={{
-            duration: Math.random() * 4 + 3,
-            repeat: Infinity,
-            delay: Math.random() * 3,
-            ease: "easeOut",
-          }}
-        />
-      ))}
+    <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background px-6">
+      
+      {/* The Cat Mascot */}
+      {catData && (
+        <motion.div 
+          className="fixed bottom-0 z-0 pointer-events-none w-64 sm:w-80 md:w-96 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-16 lg:right-32"
+          // Starts hidden below screen
+          initial={{ y: "100%" }}
+          // If phase is exiting-cat, move back to 100% (hidden). Otherwise, 0% (visible).
+          animate={{ y: phase === "exiting-cat" ? "100%" : "0%" }} 
+          // Switch the transition based on whether it's entering or exiting
+          transition={
+            phase === "exiting-cat" 
+              ? { duration: 0.8, ease: "easeInOut" } // Smooth slide down to exit
+              : { type: "spring", delay: 0.5, duration: 1.5, bounce: 0.4 } // Bouncy entrance
+          }
+        >
+          <Lottie 
+            lottieRef={catRef}
+            animationData={catData} 
+            loop={false} 
+            onComplete={() => {
+              if (catRef.current) {
+                catRef.current.loop = true;
+                catRef.current.playSegments([25, 77], true);
+              }
+            }}
+          />
+        </motion.div>
+      )}
 
+      {/* Main Content */}
       <AnimatePresence mode="wait">
-        {!opened ? (
+        {phase === "typing" && (
           <motion.div
-            key="envelope"
-            className="flex cursor-pointer flex-col items-center gap-8"
-            onClick={handleOpen}
-            exit={{ scale: 1.2, opacity: 0, y: -40 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
+            key="text-sequence"
+            className="z-10 mb-20 max-w-2xl text-center sm:mb-24"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
-            {/* Envelope */}
-            <motion.div
-              className="relative flex h-40 w-56 items-center justify-center rounded-lg border border-border bg-card box-glow sm:h-52 sm:w-72"
-              animate={{
-                y: [0, -8, 0],
-                boxShadow: [
-                  "0 0 30px hsl(340 80% 60% / 0.2)",
-                  "0 0 50px hsl(340 80% 60% / 0.4)",
-                  "0 0 30px hsl(340 80% 60% / 0.2)",
-                ],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              {/* Envelope flap */}
-              <div className="absolute -top-[1px] left-0 right-0">
-                <div
-                  className="mx-auto h-0 w-0 border-l-[7rem] border-r-[7rem] border-t-[4.5rem] border-l-transparent border-r-transparent border-t-card sm:border-l-[9rem] sm:border-r-[9rem] sm:border-t-[5.5rem]"
-                  style={{
-                    filter: "drop-shadow(0 2px 4px hsl(340 80% 60% / 0.15))",
-                  }}
-                />
-              </div>
-              {/* Heart seal */}
-              <motion.span
-                className="text-5xl"
-                animate={{ scale: [1, 1.15, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                💌
-              </motion.span>
-            </motion.div>
+            <h1 className="font-serif text-xl leading-relaxed text-foreground sm:text-3xl sm:leading-relaxed md:text-4xl md:leading-relaxed">
+              {words.map((word, index) => (
+                <motion.span key={index} className="inline-block mr-2" variants={wordVariants}>
+                  {word}
+                </motion.span>
+              ))}
+            </h1>
+          </motion.div>
+        )}
+
+        {phase === "envelope" && (
+          <motion.div
+            key="envelope-sequence"
+            className="z-10 mb-20 flex cursor-pointer flex-col items-center gap-4 sm:mb-24"
+            initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            // Add the exit animation for when the envelope unmounts
+            exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.8, ease: "easeInOut" } }}
+            onClick={handleTransition}
+          >
+            <div className="w-72 sm:w-96 md:w-[32rem]">
+              {envelopeData ? (
+                <Lottie animationData={envelopeData} loop={true} />
+              ) : (
+                <div className="h-72 w-72 animate-pulse rounded-xl bg-primary/10 sm:h-96 sm:w-96" />
+              )}
+            </div>
 
             <motion.p
-              className="text-sm tracking-[0.3em] uppercase text-muted-foreground"
-              animate={{ opacity: [0.4, 0.8, 0.4] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              className="font-sans text-xs tracking-[0.2em] uppercase text-primary/80 sm:text-sm"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              tap to open
-            </motion.p>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="message"
-            className="flex flex-col items-center gap-6 px-6 text-center"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-          >
-            <motion.p
-              className="font-serif text-2xl italic text-foreground sm:text-3xl"
-              style={{ fontFamily: "'Playfair Display', serif" }}
-              initial={{ y: 20 }}
-              animate={{ y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              I made something for you...
-            </motion.p>
-            <motion.div
-              className="h-px w-24 bg-primary/50"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: 1, duration: 0.8 }}
-            />
-            <motion.p
-              className="text-sm text-muted-foreground"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.5 }}
-            >
-              but first, prove you're really you ✨
+              tap to find out what it says
             </motion.p>
           </motion.div>
         )}
       </AnimatePresence>
+
     </div>
   );
-};
-
-export default Anticipation;
+}
