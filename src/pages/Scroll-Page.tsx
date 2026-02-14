@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
 
 // --- CONFIGURATION ---
@@ -45,7 +45,6 @@ const MemorySection = ({ event, index }: { event: typeof scrollEvents[0]; index:
         offset: ["start end", "end start"]
     });
 
-    // Only scale changes now. Opacity is removed to prevent the "white overlay" look.
     const scale = useTransform(scrollYProgress, [0.1, 0.5, 0.9], [0.85, 1.05, 0.85]);
     const yText = useTransform(scrollYProgress, [0.1, 0.9], [50, -50]);
     const isEven = index % 2 === 0;
@@ -53,7 +52,7 @@ const MemorySection = ({ event, index }: { event: typeof scrollEvents[0]; index:
     return (
         <section ref={ref} className="min-h-screen flex items-center justify-center py-24 px-4 relative">
             <motion.div 
-                style={{ scale }} // Removed opacity from here
+                style={{ scale }}
                 className={`flex flex-col ${isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-12 lg:gap-24 max-w-7xl w-full mx-auto`}
             >
                 <div className="flex-1 w-full aspect-[3/4] lg:aspect-[4/5] relative group">
@@ -83,87 +82,159 @@ const MemorySection = ({ event, index }: { event: typeof scrollEvents[0]; index:
 const ScrollPage = () => {
     const navigate = useNavigate();
     const [rosesData, setRosesData] = useState(null);
+    
+    // Phases: 'black' -> 'flower' -> 'content'
+    const [phase, setPhase] = useState<'black' | 'flower' | 'content'>('black');
 
     useEffect(() => {
+        // Load Lottie
         fetch('/assets/lotties/roses.json')
             .then(res => res.json())
             .then(data => setRosesData(data))
             .catch(err => console.error("Failed to load roses.json", err));
+
+        // SEQUENCE LOGIC
+        // 1. Start Black (default)
+        // 2. Animate to Light (handled by Framer Motion below)
+        
+        // 3. After 2.5s (Transition done), show Flower
+        const flowerTimer = setTimeout(() => {
+            setPhase('flower');
+        }, 2500);
+
+        return () => clearTimeout(flowerTimer);
     }, []);
 
-    return (
-        <div className="bg-background text-foreground overflow-x-hidden selection:bg-primary/20">
-            
-            {/* 1. HERO SECTION */}
-            <div className="h-screen flex flex-col items-center justify-center text-center px-6">
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-                    className="flex items-center justify-center gap-4"
-                >
-                    {rosesData && <Lottie animationData={rosesData} loop={false} className="w-24 md:w-32" />}
-                    <h1 className="text-5xl md:text-7xl font-bold font-serif text-glow">
-                        Our Memory Lane
-                    </h1>
-                    {rosesData && <Lottie animationData={rosesData} loop={false} className="w-24 md:w-32 transform -scale-x-100" />}
-                </motion.div>
-                <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 1, delay: 1 }}
-                    className="max-w-xl text-center text-lg md:text-xl font-serif italic text-foreground/80 leading-loose mt-8"
-                >
-                    "Every story has a beginning, but ours is my favorite. Let's revisit the moments that brought us here..."
-                </motion.p>
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.5, duration: 1 }}
-                    className="absolute bottom-12 text-2xl text-primary animate-bounce"
-                >
-                    ↓
-                </motion.div>
-            </div>
+    // Handle Flower Completion -> Content Reveal
+    useEffect(() => {
+        if (phase === 'flower') {
+            // Play flower for 3 seconds, then 1s delay = 4s total
+            const contentTimer = setTimeout(() => {
+                setPhase('content');
+            }, 4000);
+            return () => clearTimeout(contentTimer);
+        }
+    }, [phase]);
 
-            {/* 2. SCROLLABLE MEMORY SECTIONS */}
-            <div className="relative z-10 bg-background space-y-20 pb-20">
-                {scrollEvents.map((event, index) => (
-                    <MemorySection key={index} event={event} index={index} />
-                ))}
-            </div>
-            
-            {/* 3. FINALE SECTION */}
-            <div className="h-screen flex flex-col items-center justify-center text-center px-6 relative z-10 bg-background">
-                 <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true, amount: 0.5 }}
-                    transition={{ duration: 1 }}
-                    className="max-w-2xl"
-                >
-                    <h2 className="text-5xl md:text-7xl font-bold font-serif mb-8 text-glow">
-                        One Last Question
-                    </h2>
-                    <p className="text-xl text-muted-foreground mb-12 font-light">
-                        We've looked at the past. Now I want to ask you about our future.
-                    </p>
-                    
-                    <button
-                        onClick={() => navigate("/ask")}
-                        className="group relative inline-flex items-center justify-center px-12 py-4 overflow-hidden font-medium text-primary-foreground transition duration-300 ease-out border-2 border-primary rounded-full shadow-md bg-primary hover:bg-transparent hover:text-primary"
+    return (
+        // MAIN BACKGROUND TRANSITION
+        // We use RGB values for smooth interpolation: Black(0,0,0) -> DarkGrey(50,50,50) -> RoseWhite(253,245,247)
+        <motion.div 
+            className="bg-background text-foreground overflow-x-hidden selection:bg-primary/20 min-h-screen"
+            initial={{ backgroundColor: "#000000" }}
+            animate={{ 
+                backgroundColor: phase === 'black' ? "#000000" : "#fdf5f7" 
+            }}
+            transition={{ duration: 2, ease: "easeInOut" }}
+        >
+            {/* INTRO OVERLAY (Flower) */}
+            <AnimatePresence>
+                {phase === 'flower' && (
+                    <motion.div 
+                        className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 1 }}
                     >
-                        <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-primary group-hover:translate-x-0 ease">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </span>
-                        <span className="absolute flex items-center justify-center w-full h-full text-primary-foreground transition-all duration-300 transform group-hover:translate-x-full ease">
-                            I'm Ready ✨
-                        </span>
-                        <span className="relative invisible">I'm Ready ✨</span>
-                    </button>
-                </motion.div>
-            </div>
-        </div>
+                        {/* Big Center Flower */}
+                        <div className="w-full max-w-lg md:max-w-2xl px-6">
+                             {rosesData && (
+                                <Lottie 
+                                    animationData={rosesData} 
+                                    loop={false} 
+                                    className="w-full h-auto drop-shadow-2xl"
+                                />
+                             )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* MAIN CONTENT (Hidden until Intro is done) */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: phase === 'content' ? 1 : 0 }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className={phase !== 'content' ? "h-screen overflow-hidden" : ""}
+            >
+                {/* 1. HERO SECTION */}
+                <div className="h-screen flex flex-col items-center justify-center text-center px-6">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={phase === 'content' ? { opacity: 1, y: 0 } : {}}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+                        className="flex flex-col md:flex-row items-center justify-center gap-4"
+                    >
+                        {/* Decorative small roses on side */}
+                        {rosesData && <Lottie animationData={rosesData} loop={false} className="w-20 md:w-28 opacity-80 hidden md:block" />}
+                        
+                        <h1 className="text-5xl md:text-8xl font-bold font-serif text-glow leading-tight">
+                            Our Memory Lane
+                        </h1>
+                        
+                        {rosesData && <Lottie animationData={rosesData} loop={false} className="w-20 md:w-28 opacity-80 transform -scale-x-100 hidden md:block" />}
+                    </motion.div>
+                    
+                    <motion.p 
+                        initial={{ opacity: 0 }}
+                        whileInView={phase === 'content' ? { opacity: 1 } : {}}
+                        transition={{ duration: 1, delay: 1 }}
+                        className="max-w-xl text-center text-lg md:text-2xl font-serif italic text-foreground/80 leading-loose mt-8"
+                    >
+                        "Every story has a beginning, but ours is my favorite. Let's revisit the moments that brought us here..."
+                    </motion.p>
+                    
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        whileInView={phase === 'content' ? { opacity: 1 } : {}}
+                        transition={{ delay: 1.5, duration: 1 }}
+                        className="absolute bottom-12 text-3xl text-primary animate-bounce"
+                    >
+                        ↓
+                    </motion.div>
+                </div>
+
+                {/* 2. SCROLLABLE MEMORY SECTIONS */}
+                <div className="relative z-10 space-y-20 pb-20">
+                    {scrollEvents.map((event, index) => (
+                        <MemorySection key={index} event={event} index={index} />
+                    ))}
+                </div>
+                
+                {/* 3. FINALE SECTION */}
+                <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-6 relative z-10">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true, amount: 0.5 }}
+                        transition={{ duration: 1 }}
+                        className="max-w-3xl"
+                    >
+                        <h2 className="text-5xl md:text-7xl font-bold font-serif mb-8 text-glow">
+                            One Last Question
+                        </h2>
+                        <p className="text-xl md:text-2xl text-muted-foreground mb-16 font-light leading-relaxed">
+                            We've looked at the past. And now, its time for the big question.
+                        </p>
+                        
+                        <button
+                            onClick={() => navigate("/ask")}
+                            className="group relative inline-flex items-center justify-center px-12 py-5 overflow-hidden font-medium text-primary-foreground transition duration-300 ease-out border-2 border-primary rounded-full shadow-xl bg-primary hover:bg-transparent hover:text-primary"
+                        >
+                            <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-primary group-hover:translate-x-0 ease">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </span>
+                            <span className="absolute flex items-center justify-center w-full h-full text-primary-foreground transition-all duration-300 transform group-hover:translate-x-full ease text-xl tracking-wider font-serif">
+                                I'm Ready ✨
+                            </span>
+                            <span className="relative invisible text-xl">I'm Ready ✨</span>
+                        </button>
+                    </motion.div>
+                </div>
+            </motion.div>
+        </motion.div>
     );
 };
 

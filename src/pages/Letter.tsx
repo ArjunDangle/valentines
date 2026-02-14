@@ -7,10 +7,10 @@ export default function Letter() {
   const navigate = useNavigate();
   const [catData, setCatData] = useState<any>(null);
   
-  // A simplified state machine since we aren't moving the cat anymore
+  // State machine for the sequence
   const [phase, setPhase] = useState<"reading" | "text-exiting" | "cat-exiting">("reading");
 
-  // Fetch the sleeping cat Lottie
+  // Fetch the dancing cat Lottie
   useEffect(() => {
     fetch("/assets/lotties/dance-cat.json")
       .then((res) => res.json())
@@ -49,10 +49,10 @@ export default function Letter() {
 
   // The perfectly timed stationary sequence
   const handleTransition = () => {
-    // 1. Text begins to disappear immediately
+    // 1. Text begins to fade out (but stays in place)
     setPhase("text-exiting");
 
-    // 2. Cat stays exactly where it is for 2.5 seconds, then begins to exit
+    // 2. Cat stays exactly where it is for 2.5 seconds (dancing alone)
     setTimeout(() => {
       setPhase("cat-exiting");
 
@@ -68,11 +68,11 @@ export default function Letter() {
     <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background px-6 py-12 sm:px-12 md:px-16 lg:px-24">
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center gap-12 md:flex-row md:gap-16 lg:gap-24">
         
-        {/* The Sleeping Cat */}
+        {/* The Dancing Cat */}
         <AnimatePresence>
           {phase !== "cat-exiting" && (
             <motion.div 
-              // Exit animation for the cat
+              // Only exits at the very end
               exit={{ opacity: 0, filter: "blur(10px)", transition: { duration: 1, ease: "easeInOut" } }}
               className="order-1 flex w-full justify-center md:order-2 md:w-1/2 z-10"
             >
@@ -93,53 +93,57 @@ export default function Letter() {
         </AnimatePresence>
 
         {/* The Letter */}
-        {/* We keep this wrapper div constantly rendered so the Flexbox layout NEVER collapses. 
-            This is what prevents the cat from moving when the text disappears. */}
         <div className="order-2 flex w-full flex-col font-serif md:order-1 md:w-1/2">
-          <AnimatePresence>
-            {phase === "reading" && (
-              <motion.div
-                // Text beautifully blurs out
-                exit={{ opacity: 0, filter: "blur(10px)", transition: { duration: 0.8, ease: "easeInOut" } }}
-                className="w-full flex-col"
-              >
-                {processedParagraphs.map((paragraph, pIndex) => (
-                  <p key={pIndex} className={paragraph.className}>
-                    {paragraph.words.map((wordObj) => (
-                      <motion.span
-                        key={wordObj.index}
-                        className="inline-block mr-[0.25em] mb-1"
-                        initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{
-                          delay: initialDelay + wordObj.index * staggerDelay,
-                          type: "spring",
-                          damping: 12,
-                          stiffness: 100,
-                        }}
-                      >
-                        {wordObj.text}
-                      </motion.span>
-                    ))}
-                  </p>
-                ))}
-
-                <motion.div 
-                  className="mt-2"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: initialDelay + globalWordIndex * staggerDelay + 0.5, duration: 1 }}
-                >
-                  <button
-                    onClick={handleTransition}
-                    className="rounded-full bg-primary px-8 py-3.5 font-sans text-sm font-medium tracking-wide text-primary-foreground transition-all hover:scale-105 active:scale-95 box-glow sm:text-base"
+          {/* 
+            CHANGE: Removed AnimatePresence and conditional rendering here.
+            The text div remains in the DOM (occupying space) but fades to opacity 0.
+            This prevents the layout from collapsing and the cat from moving.
+          */}
+          <motion.div
+            animate={
+              phase === "reading" 
+                ? { opacity: 1, filter: "blur(0px)" } 
+                : { opacity: 0, filter: "blur(10px)", pointerEvents: "none" }
+            }
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="w-full flex-col"
+          >
+            {processedParagraphs.map((paragraph, pIndex) => (
+              <p key={pIndex} className={paragraph.className}>
+                {paragraph.words.map((wordObj) => (
+                  <motion.span
+                    key={wordObj.index}
+                    className="inline-block mr-[0.25em] mb-1"
+                    initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                    // We only run the entrance animation once on load
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{
+                      delay: initialDelay + wordObj.index * staggerDelay,
+                      type: "spring",
+                      damping: 12,
+                      stiffness: 100,
+                    }}
                   >
-                    Take the Test ✨
-                  </button>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    {wordObj.text}
+                  </motion.span>
+                ))}
+              </p>
+            ))}
+
+            <motion.div 
+              className="mt-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: initialDelay + globalWordIndex * staggerDelay + 0.5, duration: 1 }}
+            >
+              <button
+                onClick={handleTransition}
+                className="rounded-full bg-primary px-8 py-3.5 font-sans text-sm font-medium tracking-wide text-primary-foreground transition-all hover:scale-105 active:scale-95 box-glow sm:text-base"
+              >
+                Take the Test ✨
+              </button>
+            </motion.div>
+          </motion.div>
         </div>
 
       </div>
